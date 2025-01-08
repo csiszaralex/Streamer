@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title><%= title %></title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="bg-gray-900 text-white p-2">
+    <div class="my-2">
+      <div class="flex items-center space-x-2 justify-start">
+        <% parents.forEach((parent, index) => { %>
+        <a
+          href="<%= parent.path %>"
+          class="text-gray-300 hover:text-gray-100 transition-colors text-lg font-medium truncate max-w-32"
+        >
+          <%= parent.name %>
+        </a>
+        <% if (index < parents.length - 1) { %>
+        <span class="text-gray-500">/</span>
+        <% } %> <% }); %>
+      </div>
+
+      <div class="relative flex items-center justify-center my-2">
+        <h1 class="text-4xl font-bold text-gray-200"><%= title %></h1>
+      </div>
+    </div>
+
+    <!-- Mappák megjelenítése -->
+    <div
+      class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 2xl:grid-cols-10 gap-4 mb-5"
+    >
+      <% folders.forEach((folder) => { %>
+      <a
+        href="/<%= currentPath %><%= folder %>"
+        class="block p-6 bg-gray-800 rounded-lg shadow-md hover:bg-gray-700 transition-colors"
+      >
+        <h2 class="text-xl font-semibold text-white text-center"><%= folder %></h2>
+      </a>
+      <% }); %>
+    </div>
+
+    <!-- Fájlok megjelenítése -->
+    <% if (files.length !== 0) { %>
+    <div class="space-y-6">
+      <!-- Fájlok rácsként -->
+      <h2 class="text-2xl font-bold text-gray-200">Files</h2>
+      <div
+        class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 2xl:grid-cols-10 gap-4"
+      >
+        <% files.forEach((file) => { %>
+        <a
+          href="/play/<%= currentPath %><%= file %>"
+          class="flex items-between bg-gray-800 text-white rounded-md p-4 hover:bg-gray-700 transition-colors p-4"
+        >
+          <span class="text-sm break-words"><%= file %></span>
+          <!-- <a
+            href="/download/<%= currentPath %><%= file %>"
+            class="flex items-center justify-center px-3 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-500 transition"
+            download
+          >
+            <svg
+              class="w-4 h-4 mr-2"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5m0 0l5-5m-5 5V3"
+              />
+            </svg>
+          </a> -->
+        </a>
+        <% }); %>
+      </div>
+    </div>
+    <% } %>
+  </body>
+</html>

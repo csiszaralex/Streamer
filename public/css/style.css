@@ -1,0 +1,23 @@
+/* TailwindCSS alapú stílusok */
+body {
+  font-family: 'Arial', sans-serif;
+}
+
+video {
+  object-fit: contain; /* A videó kitölti a képernyőt, ha a képarány eltér */
+}
+
+#currentTitle {
+  font-size: 2rem;
+  text-align: center;
+}
+
+a {
+  display: inline-block;
+  text-decoration: none;
+  border-radius: 8px;
+}
+
+a:hover {
+  background-color: #2d3748;
+}
