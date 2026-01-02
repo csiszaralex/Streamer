@@ -1,0 +1,20 @@
+meta {
+  name: Metadata
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{URL}}/api/videos/metadata?path=test/xxx.mp4
+  body: none
+  auth: inherit
+}
+
+params:query {
+  path: test/xxx.mp4
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
