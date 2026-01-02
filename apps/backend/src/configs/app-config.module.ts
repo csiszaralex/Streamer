@@ -11,6 +11,7 @@ import { validate } from './env.validation';
       isGlobal: true,
       cache: true,
       expandVariables: true,
+      envFilePath: ['.env', 'apps/backend/.env'],
     }),
   ],
   providers: [AppConfigService],
