@@ -8,7 +8,7 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './src'), // Ez a shadcn/ui-hoz kell majd
+      '@': path.resolve(__dirname, './src'),
     },
   },
   server: {

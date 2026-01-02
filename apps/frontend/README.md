@@ -1,73 +1,45 @@
-# React + TypeScript + Vite
+# Streamer Frontend (React + Vite)
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+The user interface providing a modern SPA experience for browsing and playing videos. The design follows a dark, minimalist **Netflix-like** style.
 
-Currently, two official plugins are available:
+## 🎨 Tech Stack & UI Library
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+* **Framework:** React 18 + Vite (Fast HMR and build).
+* **Styling:** TailwindCSS.
+* **State Management:** `@tanstack/react-query` (Server state caching, loading states).
+* **Routing:** `react-router-dom`.
 
-## React Compiler
+## 🖥 Key Components
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### 1. `FolderBrowser.tsx`
+* Recursive file browser.
+* Handles navigation breadcrumbs.
+* Visually distinguishes between folders and files.
+* Automatically caches folder contents for fast navigation.
 
-## Expanding the ESLint configuration
+### 2. `VideoPlayer.tsx` (The playback engine)
+This component bridges the gap between the browser and MKV streaming.
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+* **Custom UI:** Custom control bar (Play, Volume, Fullscreen, Seekbar) hiding the native browser player.
+* **Smart Seeking (Offset Logic):**
+    * For MKV, the browser sees a "live" stream (native seeking doesn't work).
+    * The component manages a `seekOffset` state.
+    * On seek (`User Interaction`), it reloads the video source with a new start parameter requested from the backend (`?start=XXXX`).
+    * It adds the offset to the video's current time on the UI slider, making the operation transparent to the user.
+* **Buffered Visualizer:** Displays the buffered range on the slider, accounting for the transcoding offset.
+* **Volume Manager:** Intelligent mute/unmute logic.
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+## 🔧 Development (Proxy Setup)
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+During development (`pnpm dev`), the Frontend runs on port `5173`, while the Backend runs on `3000`.
+The **Proxy** configured in `vite.config.ts` ensures that `/api` requests are forwarded, allowing the code to use relative paths (`/api/videos/...`), which works seamlessly in production (where they run on the same port).
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
+```typescript
+// vite.config.ts
+proxy: {
+  '/api': {
+    target: 'http://localhost:3000',
+    changeOrigin: true,
   },
-])
-```
-
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+}
 ```
