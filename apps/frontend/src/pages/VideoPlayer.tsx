@@ -1,10 +1,10 @@
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, Loader2, Maximize, Pause, Play, Volume2, VolumeX } from 'lucide-react';
+import { ArrowLeft, Loader2 } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import screenfull from 'screenfull';
+import { VideoControls } from '../components/VideoControls';
 import { videoApi } from '../lib/api';
-import { formatTime } from '../lib/format';
 import { cn } from '../lib/utils';
 
 export default function VideoPlayer() {
@@ -182,113 +182,39 @@ export default function VideoPlayer() {
       )}
 
       {/* --- CONTROLS OVERLAY --- */}
-      <div
-        className={cn(
-          'absolute bottom-0 left-0 right-0 bg-linear-to-t from-black/90 to-transparent px-6 pb-6 pt-20 transition-opacity duration-300',
-          showControls ? 'opacity-100' : 'opacity-0 cursor-none',
-        )}
-        onClick={(e) => e.stopPropagation()} // Hogy a gombokra kattintás ne állítsa meg a videót
-      >
-        {/* Progress Bar (Custom Slider) */}
-        <div className='relative group/slider mb-4 h-4 flex items-center cursor-pointer'>
-          <input
-            type='range'
-            min={0}
-            max={duration}
-            value={currentTime}
-            onChange={(e) => handleSeek(Number(e.target.value))}
-            className='absolute w-full h-full opacity-0 z-20 cursor-pointer'
-          />
-          {/* Visual Track (Szürke háttér) */}
-          <div className='w-full h-1 bg-gray-600/50 rounded-full group-hover/slider:h-2 transition-all overflow-hidden relative'>
-            {/* 1. RÉTEG: BUFFERED BAR (Világosszürke) */}
-            <div
-              className='absolute top-0 left-0 h-full bg-gray-400/80 rounded-full transition-all duration-500 ease-out'
-              style={{ width: `${(buffered / duration) * 100}%` }}
-            />
-
-            {/* 2. RÉTEG: PROGRESS FILL (Piros) */}
-            <div
-              className='absolute top-0 left-0 h-full bg-red-600 rounded-full z-10'
-              style={{ width: `${(currentTime / duration) * 100}%` }}
-            />
-          </div>
-          {/* Thumb (gömb) - csak hoverkor látszik */}
-          <div
-            className='absolute w-4 h-4 bg-red-600 rounded-full shadow pointer-events-none opacity-0 group-hover/slider:opacity-100 transition-opacity'
-            style={{ left: `${(currentTime / duration) * 100}%`, transform: 'translateX(-50%)' }}
-          />
-        </div>
-
-        {/* Buttons Row */}
-        <div className='flex items-center justify-between text-white'>
-          <div className='flex items-center gap-6'>
-            <button onClick={togglePlay} className='hover:text-red-500 transition'>
-              {isPlaying ? (
-                <Pause size={32} fill='currentColor' />
-              ) : (
-                <Play size={32} fill='currentColor' />
-              )}
-            </button>
-
-            {/* Volume */}
-            <div className='flex items-center gap-2 group/vol'>
-              <button
-                onClick={() => {
-                  const nextState = !isMuted;
-                  setIsMuted(nextState);
-
-                  if (videoRef.current) {
-                    videoRef.current.muted = nextState;
-                  }
-                }}
-              >
-                {isMuted || volume === 0 ? <VolumeX size={24} /> : <Volume2 size={24} />}
-              </button>
-              <input
-                type='range'
-                min='0'
-                max='1'
-                step='0.1'
-                value={isMuted ? 0 : volume}
-                onChange={(e) => {
-                  const val = parseFloat(e.target.value);
-                  setVolume(val);
-                  if (videoRef.current) videoRef.current.volume = val;
-                  setIsMuted(val === 0);
-                }}
-                className='w-0 overflow-hidden group-hover/vol:w-24 transition-all h-1 bg-gray-400 accent-white rounded-full ml-2'
-              />
-            </div>
-
-            <span className='text-sm font-medium font-mono text-gray-300'>
-              {formatTime(currentTime)} / {formatTime(duration)}
-            </span>
-          </div>
-
-          <div className='flex items-center gap-4'>
-            {/* Title */}
-            <h2 className='text-sm font-semibold text-gray-300 hidden md:block max-w-md truncate'>
-              {metadata?.filename}
-            </h2>
-
-            {/* Quality Badge */}
-            {metadata && (
-              <span className='px-2 py-0.5 rounded border border-gray-500 text-xs font-bold text-gray-400'>
-                {isTranscoded ? 'CONVERTED' : 'DIRECT'}
-              </span>
-            )}
-
-            <button onClick={toggleFullscreen} className='hover:text-white transition'>
-              <Maximize size={24} />
-            </button>
-          </div>
-        </div>
-      </div>
+      <VideoControls
+        showControls={showControls}
+        isPlaying={isPlaying}
+        isMuted={isMuted}
+        volume={volume}
+        currentTime={currentTime}
+        duration={duration}
+        buffered={buffered}
+        title={metadata?.filename}
+        isTranscoded={isTranscoded}
+        onPlayPause={togglePlay}
+        onSeek={handleSeek}
+        onVolumeChange={(val) => {
+          setVolume(val);
+          if (videoRef.current) videoRef.current.volume = val;
+          setIsMuted(val === 0);
+        }}
+        onToggleMute={() => {
+          const nextState = !isMuted;
+          setIsMuted(nextState);
+          if (videoRef.current) {
+            videoRef.current.muted = nextState;
+          }
+        }}
+        onToggleFullscreen={toggleFullscreen}
+      />
 
       {/* Back Button (Top Left) */}
       <button
-        onClick={() => navigate(-1)}
+        onClick={(e) => {
+          e.stopPropagation();
+          navigate(-1);
+        }}
         className={cn(
           'absolute top-4 left-4 p-3 bg-black/50 hover:bg-black/80 rounded-full text-white backdrop-blur-sm transition-opacity duration-300 z-50',
           showControls ? 'opacity-100' : 'opacity-0',
