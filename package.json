@@ -1,21 +1,17 @@
 {
-  "name": "next.js-15-react",
+  "name": "stream",
   "version": "1.0.0",
+  "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "nodemon index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "turbo dev"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "description": "",
-  "dependencies": {
-    "dotenv": "^16.4.7",
-    "ejs": "^3.1.10",
-    "express": "^4.21.2"
-  },
+  "packageManager": "pnpm@10.24.0",
   "devDependencies": {
-    "nodemon": "^3.1.9"
+    "turbo": "^2.7.2"
   }
 }
+
