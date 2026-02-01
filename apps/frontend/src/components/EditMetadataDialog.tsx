@@ -2,6 +2,18 @@ import type { VideoMetadata } from '@stream/api-types';
 import axios from 'axios';
 import { Save, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import { Badge } from './ui/badge';
+import { Button } from './ui/button';
+import {
+    Dialog,
+    DialogContent,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from './ui/dialog';
+import { Input } from './ui/input';
+import { Label } from './ui/label';
+import { Textarea } from './ui/textarea';
 
 interface EditMetadataDialogProps {
   isOpen: boolean;
@@ -96,76 +108,67 @@ export function EditMetadataDialog({ isOpen, onClose, filePath, onSave }: EditMe
     t.toLowerCase().includes(tagInput.toLowerCase()) && !tags.includes(t)
   );
 
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-      <div className="bg-slate-800 border border-slate-700 rounded-xl shadow-2xl w-full max-w-lg flex flex-col max-h-[90vh]">
-        <div className="flex items-center justify-between p-4 border-b border-slate-700">
-          <h2 className="text-xl font-semibold text-white">Edit Metadata</h2>
-          <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors">
-            <X size={24} />
-          </button>
-        </div>
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Edit Metadata</DialogTitle>
+        </DialogHeader>
 
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        <div className="space-y-4 py-4">
           {loading ? (
-            <div className="text-center text-slate-400 py-8">Loading...</div>
+            <div className="text-center text-muted-foreground py-8">Loading...</div>
           ) : (
             <>
               {/* Display Name */}
-              <div className="space-y-1">
-                <label className="text-sm font-medium text-slate-300">Display Name</label>
-                <input
-                  type="text"
+              <div className="space-y-2">
+                <Label>Display Name</Label>
+                <Input
                   value={displayName}
                   onChange={(e) => setDisplayName(e.target.value)}
-                  className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500"
                   placeholder="Movie Title"
                 />
               </div>
 
               {/* Year */}
-              <div className="space-y-1">
-                <label className="text-sm font-medium text-slate-300">Year</label>
-                <input
+              <div className="space-y-2">
+                <Label>Year</Label>
+                <Input
                   type="number"
                   value={year}
                   onChange={(e) => setYear(e.target.value === '' ? '' : parseInt(e.target.value))}
-                  className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500"
                   placeholder="e.g. 2023"
                 />
               </div>
 
               {/* Description */}
-              <div className="space-y-1">
-                <label className="text-sm font-medium text-slate-300">Description</label>
-                <textarea
+              <div className="space-y-2">
+                <Label>Description</Label>
+                <Textarea
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   rows={3}
-                  className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white resize-none focus:outline-none focus:border-blue-500"
-                  placeholder="Enter request description..."
+                  className="resize-none"
+                  placeholder="Enter video description..."
                 />
               </div>
 
               {/* Tags */}
-              <div className="space-y-1 relative">
-                <label className="text-sm font-medium text-slate-300">Tags</label>
+              <div className="space-y-2 relative">
+                <Label>Tags</Label>
                 <div className="flex flex-wrap gap-2 mb-2">
                   {tags.map(tag => (
-                    <span key={tag} className="inline-flex items-center bg-blue-600/20 text-blue-300 px-2 py-1 rounded-full text-sm border border-blue-600/30">
+                    <Badge key={tag} variant="secondary" className="px-2 py-1 gap-1">
                       {tag}
-                      <button onClick={() => removeTag(tag)} className="ml-1 hover:text-white">
-                        <X size={14} />
+                      <button onClick={() => removeTag(tag)} className="hover:text-destructive transition-colors rounded-full p-0.5">
+                        <X size={12} />
                       </button>
-                    </span>
+                    </Badge>
                   ))}
                 </div>
                 <div className="relative">
-                  <input
+                  <Input
                     ref={tagInputRef}
-                    type="text"
                     value={tagInput}
                     onChange={(e) => {
                       setTagInput(e.target.value);
@@ -177,23 +180,24 @@ export function EditMetadataDialog({ isOpen, onClose, filePath, onSave }: EditMe
                         addTag(tagInput);
                       }
                       if (e.key === 'Tab' && filteredTags.length > 0) {
-                         e.preventDefault();
-                         addTag(filteredTags[0]);
+                          e.preventDefault();
+                          addTag(filteredTags[0]);
                       }
                     }}
                     onFocus={() => setShowTagSuggestions(true)}
                     // Delay blur to allow clicking suggestions
                     onBlur={() => setTimeout(() => setShowTagSuggestions(false), 200)}
-                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500"
                     placeholder="Add tag..."
                   />
                   {showTagSuggestions && tagInput && filteredTags.length > 0 && (
-                    <div className="absolute z-10 w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg shadow-xl max-h-40 overflow-y-auto">
+                    <div className="absolute z-10 w-full mt-1 bg-popover border border-border rounded-md shadow-md max-h-40 overflow-y-auto">
                       {filteredTags.map(tag => (
                         <button
                           key={tag}
                           onClick={() => addTag(tag)}
-                          className="w-full text-left px-3 py-2 text-slate-300 hover:bg-slate-700 hover:text-white"
+                          className="w-full text-left px-3 py-2 text-sm text-popover-foreground hover:bg-accent hover:text-accent-foreground"
+                          // Use onMouseDown to prevent blur from firing before click
+                          onMouseDown={(e) => e.preventDefault()}
                         >
                           {tag}
                         </button>
@@ -206,23 +210,16 @@ export function EditMetadataDialog({ isOpen, onClose, filePath, onSave }: EditMe
           )}
         </div>
 
-        <div className="p-4 border-t border-slate-700 flex justify-end gap-3">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 rounded-lg text-slate-300 hover:bg-slate-700 transition-colors"
-          >
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>
             Cancel
-          </button>
-          <button
-            onClick={handleSave}
-            disabled={loading || saving}
-            className="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-500 transition-colors flex items-center gap-2 disabled:opacity-50"
-          >
-            <Save size={18} />
+          </Button>
+          <Button onClick={handleSave} disabled={loading || saving}>
+            {saving ? <span className="animate-spin mr-2">⏳</span> : <Save size={16} className="mr-2" />}
             {saving ? 'Saving...' : 'Save Changes'}
-          </button>
-        </div>
-      </div>
-    </div>
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

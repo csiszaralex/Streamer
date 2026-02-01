@@ -1,9 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
-import { Folder } from 'lucide-react';
+import { ArrowUpLeft } from 'lucide-react';
 import { Link, useParams } from 'react-router-dom';
 import { Breadcrumbs } from '../components/Breadcrumbs';
 import { MediaCard } from '../components/MediaCard';
+import { Card, CardContent } from '../components/ui/card';
 import { videoApi } from '../lib/api';
+import { cn } from '../lib/utils';
 
 export default function FolderBrowser() {
   // A React Router kiszedi a "*" wildcard tartalmát.
@@ -17,8 +19,8 @@ export default function FolderBrowser() {
     queryFn: () => videoApi.listFolder(currentPath),
   });
 
-  if (isLoading) return <div className='text-center p-10 text-gray-400'>Loading library...</div>;
-  if (error) return <div className='text-center p-10 text-red-500'>Error loading folder.</div>;
+  if (isLoading) return <div className='text-center p-10 text-muted-foreground'>Loading library...</div>;
+  if (error) return <div className='text-center p-10 text-destructive'>Error loading folder.</div>;
   if (!data) return null;
 
   return (
@@ -30,14 +32,18 @@ export default function FolderBrowser() {
       <div className='grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-4'>
         {/* Vissza gomb (ha nem a gyökérben vagyunk) */}
         {data.parent !== undefined && data.path !== '' && (
-          <Link
-            to={`/browse/${data.parent}`}
-            className='flex flex-col items-center justify-center p-4 bg-surface rounded-xl hover:bg-slate-700 transition-colors group aspect-square border border-slate-700 hover:border-slate-500'
-          >
-            <div className='mb-2 text-slate-500 group-hover:text-slate-300'>
-              <Folder size={40} />
-            </div>
-            <span className='text-sm font-medium text-slate-400'>.. (Back)</span>
+          <Link to={`/browse/${data.parent}`} className="block group">
+            <Card className={cn(
+               'flex flex-col items-center justify-center p-4 transition-all duration-200 aspect-square border-border/50',
+               'bg-card hover:bg-accent/50 hover:border-accent hover:scale-105 shadow-md hover:shadow-xl'
+            )}>
+              <CardContent className="flex flex-col items-center justify-center p-0">
+                <div className='mb-2 text-muted-foreground group-hover:text-foreground transition-colors'>
+                  <ArrowUpLeft size={40} />
+                </div>
+                <span className='text-sm font-medium text-muted-foreground group-hover:text-foreground transition-colors'>.. (Back)</span>
+              </CardContent>
+            </Card>
           </Link>
         )}
 

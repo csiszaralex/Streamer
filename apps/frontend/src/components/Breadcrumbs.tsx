@@ -1,5 +1,12 @@
 import { ChevronRight } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import {
+    Breadcrumb,
+    BreadcrumbItem,
+    BreadcrumbLink,
+    BreadcrumbList,
+    BreadcrumbPage,
+    BreadcrumbSeparator,
+} from "./ui/breadcrumb";
 
 interface BreadcrumbsProps {
   currentPath: string;
@@ -9,22 +16,33 @@ export function Breadcrumbs({ currentPath }: BreadcrumbsProps) {
   const crumbs = currentPath.split('/').filter(Boolean);
 
   return (
-    <div className='flex items-center gap-2 mb-6 text-gray-400 text-sm overflow-x-auto'>
-      <Link to='/browse' className='hover:text-white transition-colors'>
-        Home
-      </Link>
-      {crumbs.map((crumb, index) => {
-        // Build path up to current level
-        const pathSoFar = crumbs.slice(0, index + 1).join('/');
-        return (
-          <div key={pathSoFar} className='flex items-center gap-2'>
-            <ChevronRight size={14} />
-            <Link to={`/browse/${pathSoFar}`} className='hover:text-white transition-colors'>
-              {decodeURIComponent(crumb)}
-            </Link>
-          </div>
-        );
-      })}
-    </div>
+    <Breadcrumb className="mb-6">
+      <BreadcrumbList>
+        <BreadcrumbItem>
+          <BreadcrumbLink href="/browse">Home</BreadcrumbLink>
+        </BreadcrumbItem>
+        {crumbs.map((crumb, index) => {
+          // Build path up to current level
+          const pathSoFar = crumbs.slice(0, index + 1).join('/');
+          const isLast = index === crumbs.length - 1;
+          const decodedCrumb = decodeURIComponent(crumb);
+
+          return (
+            <div key={pathSoFar} className="flex items-center gap-1.5 sm:gap-2.5">
+              <BreadcrumbSeparator>
+                 <ChevronRight />
+              </BreadcrumbSeparator>
+              <BreadcrumbItem>
+                {isLast ? (
+                  <BreadcrumbPage>{decodedCrumb}</BreadcrumbPage>
+                ) : (
+                  <BreadcrumbLink href={`/browse/${pathSoFar}`}>{decodedCrumb}</BreadcrumbLink>
+                )}
+              </BreadcrumbItem>
+            </div>
+          );
+        })}
+      </BreadcrumbList>
+    </Breadcrumb>
   );
 }

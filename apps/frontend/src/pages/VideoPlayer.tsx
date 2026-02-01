@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import screenfull from 'screenfull';
 import { VideoControls } from '../components/VideoControls';
+import { Button } from '../components/ui/button';
 import { videoApi } from '../lib/api';
 import { cn } from '../lib/utils';
 
@@ -210,18 +211,20 @@ export default function VideoPlayer() {
       />
 
       {/* Back Button (Top Left) */}
-      <button
+      <Button
+        variant="ghost"
+        size="icon"
         onClick={(e) => {
           e.stopPropagation();
           navigate(-1);
         }}
         className={cn(
-          'absolute top-4 left-4 p-3 bg-black/50 hover:bg-black/80 rounded-full text-white backdrop-blur-sm transition-opacity duration-300 z-50',
+          'absolute top-4 left-4 h-12 w-12 bg-black/50 hover:bg-black/80 rounded-full text-white backdrop-blur-sm transition-opacity duration-300 z-50',
           showControls ? 'opacity-100' : 'opacity-0',
         )}
       >
         <ArrowLeft size={24} />
-      </button>
+      </Button>
     </div>
   );
 }

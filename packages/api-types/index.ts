@@ -3,6 +3,8 @@ export interface FileEntry {
   type: 'file' | 'folder';
   path: string; // Ez a relatív útvonal a gyökértől (pl. "Movies/Avatar.mkv")
   size?: number; // Fájlméret bájtban (csak fájloknál)
+  displayName?: string;
+  tags?: string[];
 }
 
 export interface FolderContent {

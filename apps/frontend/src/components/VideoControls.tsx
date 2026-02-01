@@ -1,6 +1,10 @@
 import { Maximize, Pause, Play, Volume2, VolumeX } from 'lucide-react';
 import { formatTime } from '../lib/format';
 import { cn } from '../lib/utils';
+import { Badge } from './ui/badge';
+import { Button } from './ui/button';
+import { Slider } from './ui/slider';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 
 interface VideoControlsProps {
   showControls: boolean;
@@ -44,64 +48,70 @@ export function VideoControls({
       onClick={(e) => e.stopPropagation()} // Prevent click from pausing video
     >
       {/* Progress Bar (Custom Slider) */}
-      <div className='relative group/slider mb-4 h-4 flex items-center cursor-pointer'>
-        <input
-          type='range'
-          min={0}
+      <div className='relative group/slider mb-4 flex items-center cursor-pointer'>
+        <Slider
+          value={[currentTime]}
           max={duration}
-          value={currentTime}
-          onChange={(e) => onSeek(Number(e.target.value))}
-          className='absolute w-full h-full opacity-0 z-20 cursor-pointer'
+          step={1}
+          onValueChange={(vals) => onSeek(Array.isArray(vals) ? vals[0] : (vals as number))}
+          className="w-full relative z-20"
         />
-        {/* Visual Track (Gray background) */}
-        <div className='w-full h-1 bg-gray-600/50 rounded-full group-hover/slider:h-2 transition-all overflow-hidden relative'>
-          {/* 1. LAYER: BUFFERED BAR (Light gray) */}
-          <div
-            className='absolute top-0 left-0 h-full bg-gray-400/80 rounded-full transition-all duration-500 ease-out'
-            style={{ width: `${(buffered / duration) * 100}%` }}
-          />
-
-          {/* 2. LAYER: PROGRESS FILL (Red) */}
-          <div
-            className='absolute top-0 left-0 h-full bg-red-600 rounded-full z-10'
-            style={{ width: `${(currentTime / duration) * 100}%` }}
-          />
+        {/* Buffered Bar - Positioned absolutely under the slider track */}
+        <div className='absolute top-1/2 -translate-y-1/2 left-0 w-full h-1.5 rounded-full overflow-hidden pointer-events-none px-[1px]'>
+             <div
+                className='h-full bg-white/20 rounded-full transition-all duration-500 ease-out'
+                style={{ width: `${(buffered / duration) * 100}%` }}
+             />
         </div>
-        {/* Thumb (sphere) - visible on hover */}
-        <div
-          className='absolute w-4 h-4 bg-red-600 rounded-full shadow pointer-events-none opacity-0 group-hover/slider:opacity-100 transition-opacity'
-          style={{ left: `${(currentTime / duration) * 100}%`, transform: 'translateX(-50%)' }}
-        />
       </div>
 
       {/* Buttons Row */}
       <div className='flex items-center justify-between text-white'>
-        <div className='flex items-center gap-6'>
-          <button onClick={onPlayPause} className='hover:text-red-500 transition'>
-            {isPlaying ? (
-              <Pause size={32} fill='currentColor' />
-            ) : (
-              <Play size={32} fill='currentColor' />
-            )}
-          </button>
+        <div className='flex items-center gap-4'>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger>
+                <Button variant="ghost" size="icon" onClick={onPlayPause} className='text-white hover:text-primary hover:bg-white/10'>
+                    {isPlaying ? (
+                    <Pause size={24} fill='currentColor' />
+                    ) : (
+                    <Play size={24} fill='currentColor' />
+                    )}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{isPlaying ? 'Pause' : 'Play'}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
 
           {/* Volume */}
           <div className='flex items-center gap-2 group/vol'>
-            <button onClick={onToggleMute}>
-              {isMuted || volume === 0 ? <VolumeX size={24} /> : <Volume2 size={24} />}
-            </button>
-            <input
-              type='range'
-              min='0'
-              max='1'
-              step='0.1'
-              value={isMuted ? 0 : volume}
-              onChange={(e) => onVolumeChange(parseFloat(e.target.value))}
-              className='w-0 overflow-hidden group-hover/vol:w-24 transition-all h-1 bg-gray-400 accent-white rounded-full ml-2'
-            />
+             <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger>
+                    <Button variant="ghost" size="icon" onClick={onToggleMute} className="text-white hover:text-white hover:bg-white/10">
+                        {isMuted || volume === 0 ? <VolumeX size={20} /> : <Volume2 size={20} />}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{isMuted ? 'Unmute' : 'Mute'}</p>
+                  </TooltipContent>
+                </Tooltip>
+             </TooltipProvider>
+
+            <div className='w-0 overflow-hidden group-hover/vol:w-24 transition-all duration-300 pl-2'>
+                <Slider
+                    value={[isMuted ? 0 : volume]}
+                    max={1}
+                    step={0.1}
+                    onValueChange={(vals) => onVolumeChange(Array.isArray(vals) ? vals[0] : (vals as number))}
+                    className="w-24"
+                />
+            </div>
           </div>
 
-          <span className='text-sm font-medium font-mono text-gray-300'>
+          <span className='text-sm font-medium font-mono text-gray-300 ml-2'>
             {formatTime(currentTime)} / {formatTime(duration)}
           </span>
         </div>
@@ -114,15 +124,25 @@ export function VideoControls({
 
           {/* Quality Badge */}
           {title && (
-            <span className='px-2 py-0.5 rounded border border-gray-500 text-xs font-bold text-gray-400'>
+            <Badge variant="outline" className='text-xs font-bold text-gray-400 border-gray-500'>
               {isTranscoded ? 'CONVERTED' : 'DIRECT'}
-            </span>
+            </Badge>
           )}
 
-          <button onClick={onToggleFullscreen} className='hover:text-white transition'>
-            <Maximize size={24} />
-          </button>
+          <TooltipProvider>
+            <Tooltip>
+                <TooltipTrigger>
+                    <Button variant="ghost" size="icon" onClick={onToggleFullscreen} className='text-white hover:text-white hover:bg-white/10'>
+                        <Maximize size={20} />
+                    </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                    <p>Fullscreen</p>
+                </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
+
       </div>
     </div>
   );
