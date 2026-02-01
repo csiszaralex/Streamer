@@ -1,14 +1,7 @@
-import {
-  BadRequestException,
-  Controller,
-  Get,
-  Query,
-  Req,
-  Res,
-} from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, Post, Query, Req, Res } from '@nestjs/common';
+import { VideoMetadata } from '@stream/api-types';
 import type { Request, Response } from 'express';
 import { VideoService } from './video.service';
-import { VideoMetadata } from '@stream/api-types';
 
 @Controller('api/videos')
 export class VideoController {
@@ -36,5 +29,26 @@ export class VideoController {
       throw new BadRequestException('Path query parameter is required');
     }
     return this.videoService.getVideoMetadata(path);
+  }
+  @Get('download')
+  async download(@Query('path') path: string, @Res() res: Response) {
+    if (!path) {
+      throw new BadRequestException('Path query parameter is required');
+    }
+    return this.videoService.downloadVideo(path, res);
+  }
+
+  @Post('metadata')
+  async saveMetadata(@Query('path') path: string, @Body() metadata: Partial<VideoMetadata>) {
+    if (!path) {
+      throw new BadRequestException('Path query parameter is required');
+    }
+    await this.videoService.saveVideoMetadata(path, metadata);
+    return { success: true };
+  }
+
+  @Get('tags')
+  async getTags() {
+    return this.videoService.getAllTags();
   }
 }

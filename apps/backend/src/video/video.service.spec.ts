@@ -69,6 +69,8 @@ describe('VideoService', () => {
       // Ensure fs.access resolves happily
       (fs.access as jest.Mock).mockResolvedValue(undefined);
 
+      (fs.readFile as jest.Mock).mockRejectedValue(new Error('ENOENT')); // No sidecar
+
       const pendingPromise = service.getVideoMetadata('test.mp4');
 
       // Wait for process spawning (microtasks)
@@ -92,9 +94,94 @@ describe('VideoService', () => {
       });
     });
 
+    it('should merge sidecar metadata if present', async () => {
+      const mockSpawn = require('child_process').spawn;
+      const mockStdout = new EventEmitter();
+      const mockProcess = new EventEmitter();
+      (mockProcess as any).stdout = mockStdout;
+      mockSpawn.mockReturnValue(mockProcess);
+
+      const mockMeta = { format: {}, streams: [] };
+      (fs.access as jest.Mock).mockResolvedValue(undefined);
+
+      // Mock sidecar read
+      (fs.readFile as jest.Mock).mockResolvedValue(
+        JSON.stringify({
+          displayName: 'My Movie',
+          tags: ['Action'],
+        }),
+      );
+
+      const pendingPromise = service.getVideoMetadata('test.mp4');
+      await new Promise((resolve) => setTimeout(resolve, 10));
+      mockStdout.emit('data', JSON.stringify(mockMeta));
+      mockProcess.emit('close', 0);
+
+      const result = await pendingPromise;
+      expect(result.displayName).toBe('My Movie');
+      expect(result.tags).toEqual(['Action']);
+    });
+
     it('should throw NotFoundException if file access fails', async () => {
       (fs.access as jest.Mock).mockRejectedValue(new Error('ENOENT'));
       await expect(service.getVideoMetadata('nonexistent.mp4')).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('saveVideoMetadata', () => {
+    it('should save metadata to sidecar file', async () => {
+      (fs.access as jest.Mock).mockResolvedValue(undefined);
+      (fs.readFile as jest.Mock).mockRejectedValue(new Error('ENOENT')); // No existing sidecar
+      (fs.writeFile as jest.Mock).mockResolvedValue(undefined);
+
+      await service.saveVideoMetadata('test.mp4', { displayName: 'New Name' });
+
+      // Expect writeFile to be called with correct path and content
+      expect(fs.writeFile).toHaveBeenCalledWith(
+        expect.stringContaining('test.mp4.meta.json'),
+        expect.stringContaining('"displayName": "New Name"'),
+        'utf-8',
+      );
+    });
+  });
+
+  describe('getAllTags', () => {
+    it('should aggregate unique tags from meta files', async () => {
+      (fs.readdir as jest.Mock).mockResolvedValue([
+        { name: 'movie1.mp4.meta.json', isFile: () => true, isDirectory: () => false },
+        { name: 'movie2.mp4.meta.json', isFile: () => true, isDirectory: () => false },
+        { name: 'other.txt', isFile: () => true, isDirectory: () => false },
+      ]);
+
+      (fs.readFile as jest.Mock).mockImplementation((path: string) => {
+        if (path.includes('movie1'))
+          return Promise.resolve(JSON.stringify({ tags: ['Action', 'Sci-Fi'] }));
+        if (path.includes('movie2'))
+          return Promise.resolve(JSON.stringify({ tags: ['Comedy', 'Action'] }));
+        return Promise.reject(new Error('no meta'));
+      });
+
+      const tags = await service.getAllTags();
+      expect(tags).toEqual(['Action', 'Comedy', 'Sci-Fi']);
+    });
+  });
+
+  describe('downloadVideo', () => {
+    it('should trigger response download', async () => {
+      (fs.access as jest.Mock).mockResolvedValue(undefined); // File exists
+      const res = {
+        download: jest.fn(),
+        status: jest.fn().mockReturnThis(),
+        send: jest.fn(),
+        headersSent: false,
+      } as any;
+
+      await service.downloadVideo('test.mp4', res);
+      expect(res.download).toHaveBeenCalledWith(
+        expect.stringContaining('test.mp4'),
+        'test.mp4',
+        expect.any(Function),
+      );
     });
   });
 

@@ -1,11 +1,12 @@
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import {
-  BadRequestException,
-  Injectable,
-  Logger,
-  NotFoundException,
-} from '@nestjs/common';
-import { FileEntry, FolderContent, VideoMetadata } from '@stream/api-types';
-import { spawn } from 'child_process'; // A Node.js natív megoldása
+  CustomMetadata,
+  FFMPEGMetadata,
+  FileEntry,
+  FolderContent,
+  VideoMetadata,
+} from '@stream/api-types';
+import { spawn } from 'child_process';
 import { Response } from 'express';
 import { constants, createReadStream, statSync } from 'fs';
 import * as fs from 'fs/promises';
@@ -29,9 +30,7 @@ export class VideoService {
 
   private resolveSafePath(relativePath: string): string {
     const decodedPath = decodeURIComponent(relativePath);
-    const normalizedPath = path.normalize(
-      path.join(this.rootPath, decodedPath),
-    );
+    const normalizedPath = path.normalize(path.join(this.rootPath, decodedPath));
     if (!normalizedPath.startsWith(this.rootPath)) {
       throw new BadRequestException('Invalid path: Access denied');
     }
@@ -47,6 +46,19 @@ export class VideoService {
       throw new NotFoundException('File not found');
     }
 
+    const technicalMetadata = await this.getFFprobeMetadata(filePath, relativePath);
+    const userMetadata = await this.getSidecarMetadata(filePath);
+
+    return {
+      ...technicalMetadata,
+      ...userMetadata,
+    };
+  }
+
+  private async getFFprobeMetadata(
+    filePath: string,
+    relativePath: string,
+  ): Promise<FFMPEGMetadata> {
     return new Promise((resolve, reject) => {
       const args = [
         '-v',
@@ -68,24 +80,16 @@ export class VideoService {
 
       process.on('close', (code) => {
         if (code !== 0) {
-          this.logger.error(
-            `FFprobe exited with code ${code} for ${relativePath}`,
-          );
-          return reject(
-            new BadRequestException('Failed to read video metadata'),
-          );
+          this.logger.error(`FFprobe exited with code ${code} for ${relativePath}`);
+          return reject(new BadRequestException('Failed to read video metadata'));
         }
 
         try {
           const output = JSON.parse(rawData) as FFProbeRawOutput;
           const format = output.format || {};
 
-          const videoStream = (output.streams || []).find(
-            (s) => s.codec_type === 'video',
-          );
-          const audioStream = (output.streams || []).find(
-            (s) => s.codec_type === 'audio',
-          );
+          const videoStream = (output.streams || []).find((s) => s.codec_type === 'video');
+          const audioStream = (output.streams || []).find((s) => s.codec_type === 'audio');
 
           const metadata: VideoMetadata = {
             filename: path.basename(filePath),
@@ -102,8 +106,7 @@ export class VideoService {
 
           resolve(metadata);
         } catch (err) {
-          const errorMessage =
-            err instanceof Error ? err.message : 'Unknown error';
+          const errorMessage = err instanceof Error ? err.message : 'Unknown error';
           this.logger.error(`Failed to parse FFprobe JSON: ${errorMessage}`);
           reject(new BadRequestException('Invalid metadata format'));
         }
@@ -116,20 +119,85 @@ export class VideoService {
     });
   }
 
+  private async getSidecarMetadata(filePath: string): Promise<CustomMetadata> {
+    const metaFilePath = `${filePath}.meta.json`;
+    try {
+      await fs.access(metaFilePath, constants.R_OK);
+      const content = await fs.readFile(metaFilePath, 'utf-8');
+      return JSON.parse(content);
+    } catch {
+      return {};
+    }
+  }
+
+  async saveVideoMetadata(relativePath: string, metadata: Partial<VideoMetadata>): Promise<void> {
+    const filePath = this.resolveSafePath(relativePath);
+    const metaFilePath = `${filePath}.meta.json`; // e.g. movie.mp4 -> movie.mp4.meta.json
+
+    try {
+      await fs.access(filePath, constants.R_OK);
+    } catch {
+      throw new NotFoundException('Video file not found');
+    }
+
+    // Read existing metadata to preserve other fields if needed,
+    // but here we just want to update the editable fields.
+    // We should probably read existing sidecar first to be safe,
+    // or just overwrite with the new "user" fields.
+    const existingsidecar = await this.getSidecarMetadata(filePath);
+
+    const newSidecar: Partial<VideoMetadata> = {
+      ...existingsidecar,
+      displayName: metadata.displayName,
+      description: metadata.description,
+      year: metadata.year,
+      tags: metadata.tags,
+    };
+
+    await fs.writeFile(metaFilePath, JSON.stringify(newSidecar, null, 2), 'utf-8');
+  }
+
+  async getAllTags(): Promise<string[]> {
+    const tags = new Set<string>();
+    await this.scanForTags(this.rootPath, tags);
+    return Array.from(tags).sort();
+  }
+
+  private async scanForTags(dir: string, tags: Set<string>) {
+    try {
+      const entries = await fs.readdir(dir, { withFileTypes: true });
+      for (const entry of entries) {
+        const fullPath = path.join(dir, entry.name);
+        if (entry.isDirectory()) {
+          await this.scanForTags(fullPath, tags);
+        } else if (entry.isFile() && entry.name.endsWith('.meta.json')) {
+          try {
+            const content = await fs.readFile(fullPath, 'utf-8');
+            const data = JSON.parse(content);
+            if (Array.isArray(data.tags)) {
+              data.tags.forEach((t: string) => tags.add(t));
+            }
+          } catch (e) {
+            this.logger.warn(`Failed to read/parse existing meta file: ${fullPath}`);
+          }
+        }
+      }
+    } catch (e) {
+      this.logger.warn(`Failed to scan directory for tags: ${dir}`);
+    }
+  }
+
   async listFolder(folderPath: string = ''): Promise<FolderContent> {
     const fullPath = this.resolveSafePath(folderPath);
     try {
       const stats = await fs.stat(fullPath);
-      if (!stats.isDirectory())
-        throw new BadRequestException('Path is not a directory');
+      if (!stats.isDirectory()) throw new BadRequestException('Path is not a directory');
 
       const dirEntries = await fs.readdir(fullPath, { withFileTypes: true });
       const entries: FileEntry[] = dirEntries
         .map((entry): FileEntry => {
           const entryPath = path.join(fullPath, entry.name);
-          const relativePath = path
-            .relative(this.rootPath, entryPath)
-            .replace(/\\/g, '/');
+          const relativePath = path.relative(this.rootPath, entryPath).replace(/\\/g, '/');
 
           return {
             name: entry.name,
@@ -138,9 +206,7 @@ export class VideoService {
           };
         })
         .filter(
-          (entry) =>
-            entry.type === 'folder' ||
-            /\.(mp4|mkv|avi|webm|srt|vtt)$/i.test(entry.name),
+          (entry) => entry.type === 'folder' || /\.(mp4|mkv|avi|webm|srt|vtt)$/i.test(entry.name),
         )
         .sort((a, b) => {
           if (a.type === b.type) return a.name.localeCompare(b.name);
@@ -163,12 +229,7 @@ export class VideoService {
     }
   }
 
-  async streamVideo(
-    relativePath: string,
-    range: string,
-    startParam: string,
-    res: Response,
-  ) {
+  async streamVideo(relativePath: string, range: string, startParam: string, res: Response) {
     const filePath = this.resolveSafePath(relativePath);
 
     try {
@@ -206,9 +267,7 @@ export class VideoService {
       }
     } else {
       const startTime = startParam ? parseInt(startParam, 10) : 0;
-      this.logger.log(
-        `Starting Native FFmpeg remux for: ${relativePath} at ${startTime}s`,
-      );
+      this.logger.log(`Starting Native FFmpeg remux for: ${relativePath} at ${startTime}s`);
 
       res.writeHead(200, {
         'Content-Type': 'video/mp4',
@@ -254,5 +313,24 @@ export class VideoService {
         }
       });
     }
+  }
+
+  async downloadVideo(relativePath: string, res: Response) {
+    const filePath = this.resolveSafePath(relativePath);
+    try {
+      await fs.access(filePath, constants.R_OK);
+    } catch {
+      throw new NotFoundException('File not found');
+    }
+
+    const filename = path.basename(filePath);
+    res.download(filePath, filename, (err) => {
+      if (err) {
+        this.logger.error(`Download error: ${err.message}`);
+        if (!res.headersSent) {
+          res.status(500).send('Download failed');
+        }
+      }
+    });
   }
 }
