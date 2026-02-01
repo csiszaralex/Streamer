@@ -3,6 +3,7 @@ import { ArrowLeft, Loader2 } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import screenfull from 'screenfull';
+import { toast } from 'sonner';
 import { VideoControls } from '../components/VideoControls';
 import { Button } from '../components/ui/button';
 import { videoApi } from '../lib/api';
@@ -78,6 +79,7 @@ export default function VideoPlayer() {
     if (isTranscoded) {
       // MKV LOGIKA: Újratöltjük a streamet az új pozícióból
       setSeekOffset(value);
+      toast.info(`Seeking to ${Math.floor(value)}s...`);
       // A video elem ideje 0-ra ugrik majd, de a seekOffset miatt a UI jót mutat
       // Fontos: AutoPlay kell az újratöltés után
     } else {
@@ -154,6 +156,7 @@ export default function VideoPlayer() {
       className='relative w-full h-screen bg-black overflow-hidden group select-none'
       onMouseMove={handleMouseMove}
       onMouseLeave={() => isPlaying && setShowControls(false)}
+      onDoubleClick={toggleFullscreen}
       onClick={togglePlay} // Kattintásra play/pause
     >
       {/* --- VIDEO ELEMENT --- */}
@@ -162,8 +165,12 @@ export default function VideoPlayer() {
         src={streamUrl}
         className='w-full h-full object-contain'
         autoPlay
-        onPlay={() => setIsPlaying(true)}
-        onPause={() => setIsPlaying(false)}
+        onPlay={() => {
+            setIsPlaying(true);
+        }}
+        onPause={() => {
+            setIsPlaying(false);
+        }}
         onTimeUpdate={handleTimeUpdate}
         onWaiting={() => setIsBuffering(true)}
         onPlaying={() => setIsBuffering(false)}
@@ -192,6 +199,8 @@ export default function VideoPlayer() {
         duration={duration}
         buffered={buffered}
         title={metadata?.filename}
+        displayName={metadata?.displayName}
+        tags={metadata?.tags}
         isTranscoded={isTranscoded}
         onPlayPause={togglePlay}
         onSeek={handleSeek}

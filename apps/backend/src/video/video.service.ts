@@ -194,20 +194,35 @@ export class VideoService {
       if (!stats.isDirectory()) throw new BadRequestException('Path is not a directory');
 
       const dirEntries = await fs.readdir(fullPath, { withFileTypes: true });
-      const entries: FileEntry[] = dirEntries
-        .map((entry): FileEntry => {
+      const entries: FileEntry[] = (await Promise.all(dirEntries
+        .map(async (entry): Promise<FileEntry | null> => {
           const entryPath = path.join(fullPath, entry.name);
           const relativePath = path.relative(this.rootPath, entryPath).replace(/\\/g, '/');
+          const isFolder = entry.isDirectory();
+
+          if (!isFolder && !/\.(mp4|mkv|avi|webm|srt|vtt)$/i.test(entry.name)) {
+            return null;
+          }
+
+          let displayName: string | undefined;
+          let tags: string[] | undefined;
+
+          if (!isFolder) {
+              const metadata = await this.getSidecarMetadata(entryPath);
+              displayName = metadata.displayName;
+              tags = metadata.tags;
+          }
 
           return {
             name: entry.name,
-            type: entry.isDirectory() ? 'folder' : 'file',
+            type: isFolder ? 'folder' : 'file',
             path: relativePath,
+            displayName,
+            tags,
           };
-        })
-        .filter(
-          (entry) => entry.type === 'folder' || /\.(mp4|mkv|avi|webm|srt|vtt)$/i.test(entry.name),
-        )
+        })))
+        .filter((entry): entry is FileEntry => entry !== null)
+        .filter((entry): entry is FileEntry => entry !== null)
         .sort((a, b) => {
           if (a.type === b.type) return a.name.localeCompare(b.name);
           return a.type === 'folder' ? -1 : 1;

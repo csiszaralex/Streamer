@@ -16,6 +16,8 @@ interface VideoControlsProps {
   buffered: number;
   title?: string;
   isTranscoded?: boolean;
+  displayName?: string;
+  tags?: string[];
   onPlayPause: () => void;
   onSeek: (value: number) => void;
   onVolumeChange: (value: number) => void;
@@ -33,6 +35,8 @@ export function VideoControls({
   buffered,
   title,
   isTranscoded,
+  displayName,
+  tags,
   onPlayPause,
   onSeek,
   onVolumeChange,
@@ -117,14 +121,26 @@ export function VideoControls({
         </div>
 
         <div className='flex items-center gap-4'>
-          {/* Title */}
-          <h2 className='text-sm font-semibold text-gray-300 hidden md:block max-w-md truncate'>
-            {title}
-          </h2>
+           {/* Metadata Info */}
+           <div className="flex flex-col items-end mr-2 text-right hidden md:flex">
+              <h2 className='text-sm font-semibold text-gray-200 max-w-md truncate'>
+                {displayName || title}
+              </h2>
+              <div className="flex items-center gap-2">
+                 {displayName && title && (
+                   <span className="text-xs text-gray-400 truncate max-w-[200px]">{title}</span>
+                 )}
+                 {tags?.map(tag => (
+                   <Badge key={tag} variant="secondary" className="px-1 text-[10px] h-4 bg-white/20 hover:bg-white/30 text-white border-transparent">
+                     {tag}
+                   </Badge>
+                 ))}
+              </div>
+           </div>
 
           {/* Quality Badge */}
           {title && (
-            <Badge variant="outline" className='text-xs font-bold text-gray-400 border-gray-500'>
+            <Badge variant="outline" className='text-xs font-bold text-gray-400 border-gray-500 shrink-0'>
               {isTranscoded ? 'CONVERTED' : 'DIRECT'}
             </Badge>
           )}
