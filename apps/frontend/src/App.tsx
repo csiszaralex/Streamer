@@ -1,3 +1,4 @@
+import { TorrentManager } from "@/components/TorrentManager";
 import { Toaster } from "@/components/ui/sonner";
 import { Navigate, Route, Routes } from 'react-router-dom';
 import FolderBrowser from './pages/FolderBrowser';
@@ -11,6 +12,7 @@ export function App() {
         <Route path="/browse/*" element={<FolderBrowser />} />
         <Route path="/watch" element={<VideoPlayer />} />
       </Routes>
+      <TorrentManager />
       <Toaster />
     </>
   );
