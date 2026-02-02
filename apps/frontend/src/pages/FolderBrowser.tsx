@@ -1,8 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
-import { ArrowUpLeft } from 'lucide-react';
+import { ArrowUpLeft, Download } from 'lucide-react';
+import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { Breadcrumbs } from '../components/Breadcrumbs';
 import { MediaCard } from '../components/MediaCard';
+import { TorrentUploadModal } from '../components/TorrentUploadModal';
+import { Button } from '../components/ui/button';
 import { Card, CardContent } from '../components/ui/card';
 import { videoApi } from '../lib/api';
 import { cn } from '../lib/utils';
@@ -12,6 +15,7 @@ export default function FolderBrowser() {
   // Ha üres, undefined lesz -> fallback üres stringre.
   const params = useParams();
   const currentPath = params['*'] || '';
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
 
   // Adatlekérés (automata loading/error state kezelés!)
   const { data, isLoading, error } = useQuery({
@@ -26,7 +30,17 @@ export default function FolderBrowser() {
   return (
     <div>
       {/* Breadcrumbs */}
-      <Breadcrumbs currentPath={currentPath} />
+      <div className="flex items-center justify-between mb-4">
+        <Breadcrumbs currentPath={currentPath} />
+        <Button
+          variant="outline"
+          onClick={() => setIsUploadModalOpen(true)}
+          className="gap-2"
+        >
+          <Download className="w-4 h-4" />
+          Upload Torrent
+        </Button>
+      </div>
 
       {/* Grid Layout */}
       <div className='grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-4'>
@@ -47,11 +61,15 @@ export default function FolderBrowser() {
           </Link>
         )}
 
-        {/* Mappák és Fájlok */}
         {data.entries.map((entry) => (
           <MediaCard key={entry.name} entry={entry} />
         ))}
       </div>
+
+      <TorrentUploadModal
+        isOpen={isUploadModalOpen}
+        onClose={() => setIsUploadModalOpen(false)}
+      />
     </div>
   );
 }

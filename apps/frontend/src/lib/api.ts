@@ -17,4 +17,15 @@ export const videoApi = {
     );
     return data;
   },
+
+  uploadTorrent: async (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const { data } = await axios.post('/api/torrents/upload', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return data;
+  },
 };

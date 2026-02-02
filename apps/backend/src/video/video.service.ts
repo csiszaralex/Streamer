@@ -38,6 +38,7 @@ export class VideoService {
   }
 
   async getVideoMetadata(relativePath: string): Promise<VideoMetadata> {
+    this.logger.log(`Fetching metadata for: ${relativePath}`);
     const filePath = this.resolveSafePath(relativePath);
 
     try {
@@ -131,6 +132,7 @@ export class VideoService {
   }
 
   async saveVideoMetadata(relativePath: string, metadata: Partial<VideoMetadata>): Promise<void> {
+    this.logger.log(`Saving metadata for: ${relativePath}`);
     const filePath = this.resolveSafePath(relativePath);
     const metaFilePath = `${filePath}.meta.json`; // e.g. movie.mp4 -> movie.mp4.meta.json
 
@@ -155,6 +157,7 @@ export class VideoService {
     };
 
     await fs.writeFile(metaFilePath, JSON.stringify(newSidecar, null, 2), 'utf-8');
+    this.logger.log(`Metadata saved successfully for: ${relativePath}`);
   }
 
   async getAllTags(): Promise<string[]> {
@@ -188,6 +191,7 @@ export class VideoService {
   }
 
   async listFolder(folderPath: string = ''): Promise<FolderContent> {
+    this.logger.log(`Listing folder: ${folderPath || 'root'}`);
     const fullPath = this.resolveSafePath(folderPath);
     try {
       const stats = await fs.stat(fullPath);
@@ -331,6 +335,7 @@ export class VideoService {
   }
 
   async downloadVideo(relativePath: string, res: Response) {
+    this.logger.log(`Starting download for: ${relativePath}`);
     const filePath = this.resolveSafePath(relativePath);
     try {
       await fs.access(filePath, constants.R_OK);

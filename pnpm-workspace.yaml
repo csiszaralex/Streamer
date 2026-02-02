@@ -4,4 +4,9 @@ packages:
 
 onlyBuiltDependencies:
   - '@nestjs/core'
+  - bufferutil
+  - msw
+  - node-datachannel
   - unrs-resolver
+  - utf-8-validate
+  - utp-native
